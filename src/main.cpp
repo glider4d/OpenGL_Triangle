@@ -2,7 +2,12 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <array>
-#include <vector>
+#include <string>
+#include <memory>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#include <stb_image.h>
 
 
 int g_windowSizeX = 640;
@@ -121,11 +126,8 @@ GLuint createGlProgram(const char* vertex_source, const char * fragment_source){
 }
 
 // Vertex Buffer Object
-//returm GLuint
-//Container().begin(), (std::declval<Container>().operator[](0)), 
-
-//input params : std::array<GLfloat, 18> &arrays
-template <typename Container>
+ 
+ template <typename Container>
 auto CreateVBO(Container &arrays) -> decltype(std::declval<Container>().begin(), 
                                                std::declval<Container>().data(), 
                                                std::declval<Container>().operator[](0), 
@@ -136,6 +138,19 @@ auto CreateVBO(Container &arrays) -> decltype(std::declval<Container>().begin(),
     glBindBuffer(GL_ARRAY_BUFFER, arrays_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(arrays), arrays.data(), GL_STATIC_DRAW);
     return arrays_vbo;
+}
+
+
+std::unique_ptr<std::string> g_path = nullptr;
+
+void loadTexture(const std::string& texturePath){
+    int channel = 0;
+    int width = 0;
+    int height = 0;
+
+
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* pixels = stbi_load(std::string(*g_path + "\\" + texturePath).c_str(), &width, &height, &channel, 0);
 }
 
 // Vertex Array Object
@@ -178,8 +193,17 @@ void glfwKeyCallback(GLFWwindow* pWindow, int key, int scancode, int action, int
 
 
 
-int main(void)
+int main(int argc, char* argv[])
 {
+    std::string buf(argv[0]);
+    g_path = std::make_unique<std::string>(buf.substr(0, buf.find_last_of("\\/")));
+    buf.clear();
+
+
+    loadTexture("res\\textures\\images.png");
+
+//    g_path = argv[0];
+    std::cout<<g_path<<std::endl;
     GLFWwindow* pWindow;
 
     /* Initialize the library */
