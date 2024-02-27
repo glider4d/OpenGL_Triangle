@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 set(PROJECT_NAME OPENGL_TRIANGLE)
 project(${PROJECT_NAME})
-
+set(CMAKE_CXX_STANDARD 20)
 add_executable(${PROJECT_NAME} src/main.cpp)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
