@@ -17,3 +17,6 @@ target_link_libraries(${PROJECT_NAME} glfw)
 #add glad library
 add_subdirectory(external/glad)
 target_link_libraries(${PROJECT_NAME} glad)
+
+#add stb_image
+target_include_directories(${PROJECT_NAME} PUBLIC external/stb_image/) #public to access the master project
