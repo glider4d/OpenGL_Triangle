@@ -7,7 +7,8 @@
 #include <memory>
 
 #include <glm/vec2.hpp>
-
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -22,9 +23,16 @@ int g_windowSizeY = 480;
 
 // /<GLfloat, 18>
 std::array point = { 
-     0.0f,   1.f, 0.0f, //top
-     0.5f,  -0.5f, 0.0f, //right
-    -0.5f,  -0.5f, 0.0f  //left
+    0.0f,   50.0f, 0.0f, //top
+    50.0f,  -50.0f, 0.0f, //right
+    -50.0f,  -50.0f, 0.0f,  //left
+
+    //  0.0f,   0.5f, 0.0f, //top
+    // 0.5f,  -0.5f, 0.0f, //right
+    // -0.5f,  -0.5f, 0.0f,  //left
+
+
+
     // -1.0f, -0.5f, 0.0f, // left
     // -0.5f, 1.0f, 0.0f,   // top
     // 0.f, -0.5f, 0.0f, // right
@@ -57,11 +65,9 @@ std::array colors = {
 
 
 std::array texCoord = {
-        0.5f, 1.0f, //top
+        0.5f, 1.5f, //top
         1.0f, 0.0f, //right
-
-    0.0f, 0.0f, //left
-
+        0.0f, 0.0f, //left
 
         
 0.0f, 0.0f, //left
@@ -391,7 +397,7 @@ int main(int argc, char* argv[])
     glClearColor(1,1,0,1);
 
     GLuint textureID = 0;
-   textureID = loadTexture2("res\\textures\\_map_16x16.png");
+   textureID = loadTexture2("res\\textures\\__map_16x16.png");
     GLuint shader_program = createGlProgram(vertex_shader, fragment_shader_with_texture);
  
 
@@ -404,6 +410,10 @@ int main(int argc, char* argv[])
  
     glUseProgram(shader_program);
     setUniformInt("tex", shader_program, 0 /*it's slot*/);
+    glm::mat4 modelMatrix = glm::mat4(1.f);
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(100.f, 200.f, 0));
+    glm::mat4 projectionMatrix = glm::ortho(0.0f, static_cast<float>(g_windowSizeX), 0.0f, static_cast<float>( g_windowSizeY), -100.f, 100.f);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(pWindow))
     {
