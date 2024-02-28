@@ -1,9 +1,11 @@
 #include <glad/glad.h>
+// #include <glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <array>
 #include <string>
 #include <memory>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -20,13 +22,13 @@ int g_windowSizeY = 480;
 std::array point = { 
     
     // first triangle
-     0.5f+0.2f,  0.5f+0.2f, 0.0f,  // top right
-     0.5f+0.2f, -0.5f+0.2f, 0.0f,  // bottom right
-    -0.5f+0.2f,  0.5f+0.2f, 0.0f,  // top left 
+     0.5f,  0.5f, 0.0f,  // top right
+     0.5f, -0.5f, 0.0f,  // bottom right
+    -0.5f,  0.5f, 0.0f,  // top left 
     // second triangle
-     0.5f, -0.5f-0.1f, 0.0f,  // bottom right
-    -0.5f, -0.5f-0.1f, 0.0f,  // bottom left
-    -0.5f,  0.5f-0.1f, 0.0f   // top left
+     0.5f, -0.5f, 0.0f,  // bottom right
+    -0.5f, -0.5f, 0.0f,  // bottom left
+    -0.5f,  0.5f, 0.0f   // top left
     
 };
  
@@ -41,23 +43,50 @@ std::array colors = {
 };
 
 
+std::array texCoord = {
+    // 0.5f, 1.0f,
+    // 1.0f, 0.0f,
+    // 0.0f, 0.0f
+    1.0f, 1.0f,
+    1.0f, 0.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f
+};
+
 const char * vertex_shader = 
     "#version 460\n"
     "layout(location = 0) in vec3 vertex_position;"
     "layout(location = 1) in vec3 vertex_color;"
+    "layout(location = 2) in vec2 texture_coord;"
     "out vec3 color;"
+    "out vec2 texCoord;"
     "void main() {"
     "   color = vertex_color;"
+    "   texCoord = texture_coord;"
     "   gl_Position = vec4(vertex_position, 1.0);"
     "}";
 
 const char * fragment_shader = 
     "#version 460\n"
     "in vec3 color;"
+    "in vec2 texCoord;"
     "out vec4 frag_color;"
+    "uniform sampler2D tex;"
     "void main() {"
     "   frag_color = vec4(color, 1.0);"
     "}";
+
+
+const char* fragment_shader_with_texture =
+"#version 460\n"
+"in vec3 color;"
+"in vec2 texCoord;"
+"out vec4 frag_color;"
+"uniform sampler2D tex;"
+"void main() {"
+//"   frag_color = vec4(color, 1.0);"
+    "frag_color = texture(tex, texCoord) + vec4(color,1.0);"
+"}";
 
 
 GLuint compileVertexShader(const char * shader_source){
@@ -143,14 +172,41 @@ auto CreateVBO(Container &arrays) -> decltype(std::declval<Container>().begin(),
 
 std::unique_ptr<std::string> g_path = nullptr;
 
-void loadTexture(const std::string& texturePath){
+GLint loadTexture(const std::string& texturePath){
     int channel = 0;
     int width = 0;
     int height = 0;
 
+    GLuint textureID;
 
     stbi_set_flip_vertically_on_load(true);
+
+
+    glGenTextures(1, &textureID);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    // set the texture wrapping/filtering options (on the currently bound texture object)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     unsigned char* pixels = stbi_load(std::string(*g_path + "\\" + texturePath).c_str(), &width, &height, &channel, 0);
+
+    if (pixels){
+        
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,GL_UNSIGNED_BYTE, pixels);
+    } else {
+        std::cerr << "Failed to load texture" << std::endl;
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return textureID;
+}
+
+
+void setUniformInt(const std::string name, const GLuint shaderProgram, const GLint texId){
+    glUniform1i(glGetUniformLocation(shaderProgram, name.c_str()), texId);
 }
 
 // Vertex Array Object
@@ -172,6 +228,28 @@ GLuint CreateVAO(GLuint points_vbo, GLuint colors_vbo){
     return vao;
 }
 
+GLuint CreateVAOwithTexture(GLuint points_vbo, GLuint colors_vbo, GLuint texture_vbo){
+    GLuint vao = 0;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, texture_vbo);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    std::cout<<"vao = "<<vao<<std::endl;
+    return vao;
+
+}
+
 
 
 //for change window size
@@ -184,7 +262,7 @@ void glfwWindowSizeCallback(GLFWwindow* pWindow, int width, int height){
 
 //for key press
 void glfwKeyCallback(GLFWwindow* pWindow, int key, int scancode, int action, int mode){
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(pWindow, GL_TRUE);
     }
 }
@@ -200,7 +278,8 @@ int main(int argc, char* argv[])
     buf.clear();
 
 
-    loadTexture("res\\textures\\images.png");
+    
+
 
 //    g_path = argv[0];
     std::cout<<g_path<<std::endl;
@@ -244,15 +323,19 @@ int main(int argc, char* argv[])
     glClearColor(1,1,0,1);
 
  
-
-    GLuint shader_program = createGlProgram(vertex_shader, fragment_shader);
+    GLuint textureID = loadTexture("res\\textures\\images.png");
+    GLuint shader_program = createGlProgram(vertex_shader, fragment_shader_with_texture);
  
 
     GLuint points_vbo = CreateVBO(point);
     GLuint colors_vbo = CreateVBO(colors);
+    GLuint texture_vbo = CreateVBO(texCoord);
 
-    GLuint vao = CreateVAO(points_vbo, colors_vbo);
+    // GLuint vao = CreateVAO(points_vbo, colors_vbo);
+    GLuint vao = CreateVAOwithTexture(points_vbo, colors_vbo, texture_vbo);
  
+    glUseProgram(shader_program);
+    setUniformInt("tex", shader_program, 0 /*it's slot*/);
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(pWindow))
     {
@@ -261,6 +344,7 @@ int main(int argc, char* argv[])
 
         glUseProgram(shader_program);
         glBindVertexArray(vao);
+        glBindTexture(GL_TEXTURE_2D, textureID);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
