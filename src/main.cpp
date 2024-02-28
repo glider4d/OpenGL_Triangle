@@ -9,6 +9,7 @@
 #include <glm/vec2.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -98,10 +99,12 @@ const char * vertex_shader =
     "layout(location = 2) in vec2 texture_coord;"
     "out vec3 color;"
     "out vec2 texCoord;"
+    "uniform mat4 modelMat;"
+    "uniform mat4 projectionMat;"
     "void main() {"
     "   color = vertex_color;"
     "   texCoord = texture_coord;"
-    "   gl_Position = vec4(vertex_position, 1.0);"
+    "   gl_Position = projectionMat * modelMat * vec4(vertex_position, 1.0);"
     "}";
 
 const char * fragment_shader = 
@@ -283,6 +286,11 @@ void setUniformInt(const std::string name, const GLuint shaderProgram, const GLi
     glUniform1i(glGetUniformLocation(shaderProgram, name.c_str()), texId);
 }
 
+void setUniformMat4(const std::string &name, const GLuint shaderProgram, const glm::mat4& matrix){
+
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
+}
+
 // Vertex Array Object
 
 GLuint CreateVAO(GLuint points_vbo, GLuint colors_vbo){
@@ -410,9 +418,19 @@ int main(int argc, char* argv[])
  
     glUseProgram(shader_program);
     setUniformInt("tex", shader_program, 0 /*it's slot*/);
-    glm::mat4 modelMatrix = glm::mat4(1.f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(100.f, 200.f, 0));
+    glm::mat4 modelMatrix1 = glm::mat4(1.f);
+    modelMatrix1 = glm::translate(modelMatrix1, glm::vec3(100.f, 200.f, 0));
+
+    glm::mat4 modelMatrix2 = glm::mat4(1.f);
+    modelMatrix2 = glm::translate(modelMatrix2, glm::vec3(600.f, 200.f, 0));
+
+
     glm::mat4 projectionMatrix = glm::ortho(0.0f, static_cast<float>(g_windowSizeX), 0.0f, static_cast<float>( g_windowSizeY), -100.f, 100.f);
+
+    setUniformMat4("projectionMat", shader_program, projectionMatrix);
+
+
+
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(pWindow))
@@ -423,8 +441,12 @@ int main(int argc, char* argv[])
         glUseProgram(shader_program);
         glBindVertexArray(vao);
         glBindTexture(GL_TEXTURE_2D, textureID);
+
+        setUniformMat4("modelMat", shader_program, modelMatrix1);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
+        setUniformMat4("modelMat", shader_program, modelMatrix2);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(pWindow);
 
