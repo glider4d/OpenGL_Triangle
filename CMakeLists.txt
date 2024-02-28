@@ -21,6 +21,9 @@ target_link_libraries(${PROJECT_NAME} glad)
 #add stb_image
 target_include_directories(${PROJECT_NAME} PUBLIC external/stb_image/) #public to access the master project
 
+#add glm
+add_subdirectory(external/glm)
+target_link_libraries(${PROJECT_NAME} glm)
 
 #for output dirrectory and copy res
 

@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 
+#include <glm/vec2.hpp>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -20,15 +22,26 @@ int g_windowSizeY = 480;
 
 // /<GLfloat, 18>
 std::array point = { 
+     0.0f,   1.f, 0.0f, //top
+     0.5f,  -0.5f, 0.0f, //right
+    -0.5f,  -0.5f, 0.0f  //left
+    // -1.0f, -0.5f, 0.0f, // left
+    // -0.5f, 1.0f, 0.0f,   // top
+    // 0.f, -0.5f, 0.0f, // right
+    // -0.0f, -0.5f, 0.0f, // left
+    // 0.5f, 1.0f, 0.0f,   // top
+    // 1.f, -0.5f, 0.0f, // right
+    
+     
     
     // first triangle
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f,  0.5f, 0.0f,  // top left 
+    //  -0.5f,  0.0f, 0.0f,  // top right
+    //  0.0f, 0.5f, 0.0f,  // bottom right
+    //  0.5f,  0.0f, 0.0f,  // top left 
     // second triangle
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left
+    //  0.5f, -0.5f, 0.0f,  // bottom right
+    // -0.5f, -0.5f, 0.0f,  // bottom left
+    // -0.5f,  0.5f, 0.0f   // top left
     
 };
  
@@ -44,13 +57,32 @@ std::array colors = {
 
 
 std::array texCoord = {
+        0.5f, 1.0f, //top
+        1.0f, 0.0f, //right
+
+    0.0f, 0.0f, //left
+
+
+        
+0.0f, 0.0f, //left
+    0.5f, 1.0f, //top
+    1.0f, 0.0f, //right
+
+
+
+        
+    
+
+    
+    // 0.0f, 0.0f,  // lower-left corner  
+    // 0.5f, 0.0f,  // lower-right corner
+    // 0.5f, 1.0f   // top-center corner
     // 0.5f, 1.0f,
     // 1.0f, 0.0f,
     // 0.0f, 0.0f
-    1.0f, 1.0f,
-    1.0f, 0.0f,
-    0.0f, 1.0f,
-    0.0f, 0.0f
+    //  0.5f,  0.5f, 0.0f,  // top right
+    //  0.5f, -0.5f, 0.0f,  // bottom right
+    // -0.5f,  0.5f, 0.0f,  // top left 
 };
 
 const char * vertex_shader = 
@@ -85,7 +117,7 @@ const char* fragment_shader_with_texture =
 "uniform sampler2D tex;"
 "void main() {"
 //"   frag_color = vec4(color, 1.0);"
-    "frag_color = texture(tex, texCoord) + vec4(color,1.0);"
+    "frag_color = texture(tex, texCoord)  ;"
 "}";
 
 
@@ -185,11 +217,13 @@ GLint loadTexture(const std::string& texturePath){
     glGenTextures(1, &textureID);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
+    
+    
     // set the texture wrapping/filtering options (on the currently bound texture object)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);//GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);//GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);//GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);//GL_LINEAR);
     unsigned char* pixels = stbi_load(std::string(*g_path + "\\" + texturePath).c_str(), &width, &height, &channel, 0);
 
     if (pixels){
@@ -204,6 +238,40 @@ GLint loadTexture(const std::string& texturePath){
     return textureID;
 }
 
+
+GLuint loadTexture2(const std::string& texturePath)
+{
+    int channels = 0;
+	int width = 0;
+	int height = 0;
+
+    const GLenum filter = GL_NEAREST;
+    const GLenum wrapMode = GL_CLAMP_TO_EDGE;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* pixels = stbi_load(std::string(*g_path + "\\" + texturePath).c_str(), &width, &height, &channels, 0);
+	
+	if (!pixels) {
+		std::cerr << "Can't load image: " << texturePath.c_str() << std::endl;
+		return -1;
+	}
+    
+    stbi_image_free(pixels);
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return textureID;
+}
 
 void setUniformInt(const std::string name, const GLuint shaderProgram, const GLint texId){
     glUniform1i(glGetUniformLocation(shaderProgram, name.c_str()), texId);
@@ -322,8 +390,8 @@ int main(int argc, char* argv[])
 
     glClearColor(1,1,0,1);
 
- 
-    GLuint textureID = loadTexture("res\\textures\\images.png");
+    GLuint textureID = 0;
+   textureID = loadTexture2("res\\textures\\_map_16x16.png");
     GLuint shader_program = createGlProgram(vertex_shader, fragment_shader_with_texture);
  
 
@@ -345,7 +413,7 @@ int main(int argc, char* argv[])
         glUseProgram(shader_program);
         glBindVertexArray(vao);
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
 
         glfwSwapBuffers(pWindow);
