@@ -24,33 +24,22 @@ int g_windowSizeY = 480;
 
 // /<GLfloat, 18>
 std::array point = { 
-    0.0f,   50.0f, 0.0f, //top
-    50.0f,  -50.0f, 0.0f, //right
-    -50.0f,  -50.0f, 0.0f,  //left
+ 
+    -1.0f, 1.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f   
+    // -50.0f, 50.f, 0.0f,//top left
+    // 50.0f, 50.0f, 0.0f,//top right
+    // -50.0f, -50.0f, 0.0f,//bottom left
 
-    //  0.0f,   0.5f, 0.0f, //top
-    // 0.5f,  -0.5f, 0.0f, //right
-    // -0.5f,  -0.5f, 0.0f,  //left
-
-
-
-    // -1.0f, -0.5f, 0.0f, // left
-    // -0.5f, 1.0f, 0.0f,   // top
-    // 0.f, -0.5f, 0.0f, // right
-    // -0.0f, -0.5f, 0.0f, // left
-    // 0.5f, 1.0f, 0.0f,   // top
-    // 1.f, -0.5f, 0.0f, // right
-    
-     
-    
-    // first triangle
-    //  -0.5f,  0.0f, 0.0f,  // top right
-    //  0.0f, 0.5f, 0.0f,  // bottom right
-    //  0.5f,  0.0f, 0.0f,  // top left 
-    // second triangle
-    //  0.5f, -0.5f, 0.0f,  // bottom right
-    // -0.5f, -0.5f, 0.0f,  // bottom left
-    // -0.5f,  0.5f, 0.0f   // top left
+    // //second triangle
+    // 50.0f, 50.0f, 0.0f,//top right
+    // 50.0f, -50.0f, 0.0f,//bottom right
+    // -50.0f, -50.0f, 0.0f//bottom left
+ 
     
 };
  
@@ -66,31 +55,17 @@ std::array colors = {
 
 
 std::array texCoord = {
-        0.5f, 1.5f, //top
-        1.0f, 0.0f, //right
-        0.0f, 0.0f, //left
-
+        0.0f, 1.f, //top     - left
+        1.0f, 1.0f,//top    - right
+        0.0f, 0.0f,//bottom - left
         
-0.0f, 0.0f, //left
-    0.5f, 1.0f, //top
-    1.0f, 0.0f, //right
-
-
-
-        
-    
-
-    
-    // 0.0f, 0.0f,  // lower-left corner  
-    // 0.5f, 0.0f,  // lower-right corner
-    // 0.5f, 1.0f   // top-center corner
-    // 0.5f, 1.0f,
-    // 1.0f, 0.0f,
-    // 0.0f, 0.0f
-    //  0.5f,  0.5f, 0.0f,  // top right
-    //  0.5f, -0.5f, 0.0f,  // bottom right
-    // -0.5f,  0.5f, 0.0f,  // top left 
+        1.0f, 1.0f, //top   - right
+        1.0f, 0.0f, //right- bottom
+        0.0f, 0.0f, //bottom - left
+ 
 };
+
+glm::vec2 g_size(100.f, 100.f);
 
 const char * vertex_shader = 
     "#version 460\n"
@@ -405,7 +380,7 @@ int main(int argc, char* argv[])
     glClearColor(1,1,0,1);
 
     GLuint textureID = 0;
-   textureID = loadTexture2("res\\textures\\__map_16x16.png");
+   textureID = loadTexture2("res\\textures\\__map_16x16.png ");
     GLuint shader_program = createGlProgram(vertex_shader, fragment_shader_with_texture);
  
 
@@ -419,10 +394,24 @@ int main(int argc, char* argv[])
     glUseProgram(shader_program);
     setUniformInt("tex", shader_program, 0 /*it's slot*/);
     glm::mat4 modelMatrix1 = glm::mat4(1.f);
-    modelMatrix1 = glm::translate(modelMatrix1, glm::vec3(100.f, 200.f, 0));
+
+
+    modelMatrix1 = glm::translate(modelMatrix1, glm::vec3(250.f, 200.f, 0));
+
+
+    modelMatrix1 = glm::translate(modelMatrix1, glm::vec3(0.5f* g_size.x, 0.5f* g_size.y, 0.f));
+    modelMatrix1 = glm::rotate(modelMatrix1, glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
+    
+    modelMatrix1 = glm::translate(modelMatrix1, glm::vec3(-0.5f* g_size.x, -0.5f* g_size.y, 0.f));
+
+
+
+
+    modelMatrix1 = glm::scale(modelMatrix1, glm::vec3(100.f, 100.f,1.f));
+
 
     glm::mat4 modelMatrix2 = glm::mat4(1.f);
-    modelMatrix2 = glm::translate(modelMatrix2, glm::vec3(600.f, 200.f, 0));
+    modelMatrix2 = glm::translate(modelMatrix2, glm::vec3(590.f, 200.f, 0));
 
 
     glm::mat4 projectionMatrix = glm::ortho(0.0f, static_cast<float>(g_windowSizeX), 0.0f, static_cast<float>( g_windowSizeY), -100.f, 100.f);
@@ -443,7 +432,7 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, textureID);
 
         setUniformMat4("modelMat", shader_program, modelMatrix1);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         setUniformMat4("modelMat", shader_program, modelMatrix2);
         glDrawArrays(GL_TRIANGLES, 0, 3);
